@@ -20,8 +20,8 @@ package client
 import (
 	"context"
 
-	"github.com/seata/seata-go/pkg/common/log"
 	"github.com/seata/seata-go/pkg/protocol/message"
+	"github.com/seata/seata-go/pkg/util/log"
 
 	"github.com/seata/seata-go/pkg/remoting/getty"
 	"github.com/seata/seata-go/pkg/rm"
@@ -29,11 +29,10 @@ import (
 
 func init() {
 	rmBranchRollbackProcessor := &rmBranchRollbackProcessor{}
-	getty.GetGettyClientHandlerInstance().RegisterProcessor(message.MessageType_BranchRollback, rmBranchRollbackProcessor)
+	getty.GetGettyClientHandlerInstance().RegisterProcessor(message.MessageTypeBranchRollback, rmBranchRollbackProcessor)
 }
 
-type rmBranchRollbackProcessor struct {
-}
+type rmBranchRollbackProcessor struct{}
 
 func (f *rmBranchRollbackProcessor) Process(ctx context.Context, rpcMessage message.RpcMessage) error {
 	log.Infof("the rm client received  rmBranchRollback msg %#v from tc server.", rpcMessage)
@@ -42,11 +41,17 @@ func (f *rmBranchRollbackProcessor) Process(ctx context.Context, rpcMessage mess
 	branchID := request.BranchId
 	resourceID := request.ResourceId
 	applicationData := request.ApplicationData
-	log.Infof("Branch rollback request: xid %s, branchID %s, resourceID %s, applicationData %s", xid, branchID, resourceID, applicationData)
-
-	status, err := rm.GetRmCacheInstance().GetResourceManager(request.BranchType).BranchRollback(ctx, request.BranchType, xid, branchID, resourceID, applicationData)
+	log.Infof("Branch rollback request: xid %v, branchID %v, resourceID %v, applicationData %v", xid, branchID, resourceID, applicationData)
+	branchResource := rm.BranchResource{
+		BranchType:      request.BranchType,
+		Xid:             xid,
+		BranchId:        branchID,
+		ResourceId:      resourceID,
+		ApplicationData: applicationData,
+	}
+	status, err := rm.GetRmCacheInstance().GetResourceManager(request.BranchType).BranchRollback(ctx, branchResource)
 	if err != nil {
-		log.Infof("branch rollback error: %s", err.Error())
+		log.Errorf("branch rollback error: %s", err.Error())
 		return err
 	}
 	log.Infof("branch rollback success: xid %s, branchID %s, resourceID %s, applicationData %s", xid, branchID, resourceID, applicationData)

@@ -20,8 +20,8 @@ package client
 import (
 	"context"
 
-	"github.com/seata/seata-go/pkg/common/log"
 	"github.com/seata/seata-go/pkg/protocol/message"
+	"github.com/seata/seata-go/pkg/util/log"
 
 	"github.com/seata/seata-go/pkg/remoting/getty"
 	"github.com/seata/seata-go/pkg/rm"
@@ -29,11 +29,10 @@ import (
 
 func init() {
 	rmBranchCommitProcessor := &rmBranchCommitProcessor{}
-	getty.GetGettyClientHandlerInstance().RegisterProcessor(message.MessageType_BranchCommit, rmBranchCommitProcessor)
+	getty.GetGettyClientHandlerInstance().RegisterProcessor(message.MessageTypeBranchCommit, rmBranchCommitProcessor)
 }
 
-type rmBranchCommitProcessor struct {
-}
+type rmBranchCommitProcessor struct{}
 
 func (f *rmBranchCommitProcessor) Process(ctx context.Context, rpcMessage message.RpcMessage) error {
 	log.Infof("the rm client received  rmBranchCommit msg %#v from tc server.", rpcMessage)
@@ -43,10 +42,16 @@ func (f *rmBranchCommitProcessor) Process(ctx context.Context, rpcMessage messag
 	resourceID := request.ResourceId
 	applicationData := request.ApplicationData
 	log.Infof("Branch committing: xid %s, branchID %s, resourceID %s, applicationData %s", xid, branchID, resourceID, applicationData)
+	branchResource := rm.BranchResource{
+		ResourceId:      resourceID,
+		BranchId:        branchID,
+		ApplicationData: applicationData,
+		Xid:             xid,
+	}
 
-	status, err := rm.GetRmCacheInstance().GetResourceManager(request.BranchType).BranchCommit(ctx, request.BranchType, xid, branchID, resourceID, applicationData)
+	status, err := rm.GetRmCacheInstance().GetResourceManager(request.BranchType).BranchCommit(ctx, branchResource)
 	if err != nil {
-		log.Infof("branch commit error: %s", err.Error())
+		log.Errorf("branch commit error: %s", err.Error())
 		return err
 	}
 	log.Infof("branch commit success: xid %s, branchID %s, resourceID %s, applicationData %s", xid, branchID, resourceID, applicationData)
@@ -63,7 +68,7 @@ func (f *rmBranchCommitProcessor) Process(ctx context.Context, rpcMessage messag
 	}
 
 	// reply commit response to tc server
-	// todo add TransactionExceptionCode
+	// todo add TransactionErrorCode
 	response := message.BranchCommitResponse{
 		AbstractBranchEndResponse: message.AbstractBranchEndResponse{
 			AbstractTransactionResponse: message.AbstractTransactionResponse{
@@ -82,6 +87,6 @@ func (f *rmBranchCommitProcessor) Process(ctx context.Context, rpcMessage messag
 		log.Errorf("send branch commit response error: {%#v}", err.Error())
 		return err
 	}
-	log.Infof("send branch commit response success: xid %s, branchID %s, resourceID %s, applicationData %s", xid, branchID, resourceID, applicationData)
+	log.Infof("send branch commit success: xid %v, branchID %v, resourceID %v, applicationData %v", xid, branchID, resourceID, applicationData)
 	return nil
 }

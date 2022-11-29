@@ -18,17 +18,18 @@
 package getty
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	getty "github.com/apache/dubbo-getty"
 
-	"github.com/seata/seata-go/pkg/common/log"
 	"github.com/seata/seata-go/pkg/protocol/message"
+	"github.com/seata/seata-go/pkg/util/log"
 )
 
 const (
-	RPC_REQUEST_TIMEOUT = 2 * time.Second
+	RpcRequestTimeout = 20 * time.Second
 )
 
 var (
@@ -80,7 +81,7 @@ func (g *GettyRemoting) sendAsync(session getty.Session, msg message.RpcMessage,
 	var err error
 	if session == nil || session.IsClosed() {
 		log.Warn("sendAsyncRequestWithResponse nothing, caused by null channel.")
-		return nil, err
+		return nil, fmt.Errorf("session is closed")
 	}
 	resp := message.NewMessageFuture(msg)
 	g.futures.Store(msg.ID, resp)
@@ -96,36 +97,36 @@ func (g *GettyRemoting) sendAsync(session getty.Session, msg message.RpcMessage,
 	return nil, nil
 }
 
-func (client *GettyRemoting) GetMessageFuture(msgID int32) *message.MessageFuture {
-	if msg, ok := client.futures.Load(msgID); ok {
+func (g *GettyRemoting) GetMessageFuture(msgID int32) *message.MessageFuture {
+	if msg, ok := g.futures.Load(msgID); ok {
 		return msg.(*message.MessageFuture)
 	}
 	return nil
 }
 
-func (client *GettyRemoting) RemoveMessageFuture(msgID int32) {
-	client.futures.Delete(msgID)
+func (g *GettyRemoting) RemoveMessageFuture(msgID int32) {
+	g.futures.Delete(msgID)
 }
 
-func (client *GettyRemoting) RemoveMergedMessageFuture(msgID int32) {
-	client.mergeMsgMap.Delete(msgID)
+func (g *GettyRemoting) RemoveMergedMessageFuture(msgID int32) {
+	g.mergeMsgMap.Delete(msgID)
 }
 
-func (client *GettyRemoting) GetMergedMessage(msgID int32) *message.MergedWarpMessage {
-	if msg, ok := client.mergeMsgMap.Load(msgID); ok {
+func (g *GettyRemoting) GetMergedMessage(msgID int32) *message.MergedWarpMessage {
+	if msg, ok := g.mergeMsgMap.Load(msgID); ok {
 		return msg.(*message.MergedWarpMessage)
 	}
 	return nil
 }
 
-func (client *GettyRemoting) NotifyRpcMessageResponse(rpcMessage message.RpcMessage) {
-	messageFuture := client.GetMessageFuture(rpcMessage.ID)
+func (g *GettyRemoting) NotifyRpcMessageResponse(rpcMessage message.RpcMessage) {
+	messageFuture := g.GetMessageFuture(rpcMessage.ID)
 	if messageFuture != nil {
 		messageFuture.Response = rpcMessage.Body
 		// todo add messageFuture.Err
-		//messageFuture.Err = rpcMessage.Err
+		// messageFuture.Err = rpcMessage.Err
 		messageFuture.Done <- struct{}{}
-		//client.msgFutures.Delete(rpcMessage.RequestID)
+		// client.msgFutures.Delete(rpcMessage.RequestID)
 	} else {
 		log.Infof("msg: {} is not found in msgFutures.", rpcMessage.ID)
 	}

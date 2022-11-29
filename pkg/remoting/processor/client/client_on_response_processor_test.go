@@ -27,16 +27,16 @@ import (
 
 func TestClientOnResponseProcessor(t *testing.T) {
 	// testcases
-	var tests = []struct {
+	tests := []struct {
 		name    string             // testcase name
 		rpcMsg  message.RpcMessage // rpcMessage case
-		wantErr bool               //want testcase err or not
+		wantErr bool               // want testcase err or not
 	}{
 		{
 			name: "cor-testcase1-mergeResult",
 			rpcMsg: message.RpcMessage{
 				ID:         123,
-				Type:       message.GettyRequestType_Response,
+				Type:       message.GettyRequestTypeResponse,
 				Codec:      byte(codec.CodecTypeSeata),
 				Compressor: byte(1),
 				HeadMap: map[string]string{
@@ -55,7 +55,7 @@ func TestClientOnResponseProcessor(t *testing.T) {
 			name: "cor-testcase2-request-abstruct-success",
 			rpcMsg: message.RpcMessage{
 				ID:         124,
-				Type:       message.GettyRequestType_Response,
+				Type:       message.GettyRequestTypeResponse,
 				Codec:      byte(codec.CodecTypeSeata),
 				Compressor: byte(1),
 				HeadMap: map[string]string{
@@ -75,7 +75,7 @@ func TestClientOnResponseProcessor(t *testing.T) {
 			name: "cor-testcase2-request-abstruct-failed",
 			rpcMsg: message.RpcMessage{
 				ID:         125,
-				Type:       message.GettyRequestType_Response,
+				Type:       message.GettyRequestTypeResponse,
 				Codec:      byte(codec.CodecTypeSeata),
 				Compressor: byte(1),
 				HeadMap: map[string]string{
@@ -106,5 +106,4 @@ func TestClientOnResponseProcessor(t *testing.T) {
 			}
 		})
 	}
-
 }

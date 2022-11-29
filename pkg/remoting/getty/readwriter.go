@@ -20,7 +20,7 @@ package getty
 import (
 	"fmt"
 
-	"github.com/seata/seata-go/pkg/common/bytes"
+	"github.com/seata/seata-go/pkg/util/bytes"
 
 	getty "github.com/apache/dubbo-getty"
 	"github.com/pkg/errors"
@@ -111,7 +111,7 @@ func (p *RpcPackageHandler) Read(ss getty.Session, data []byte) (interface{}, in
 		return nil, int(header.TotalLength), nil
 	}
 
-	//r := byteio.BigEndianReader{Reader: bytes.NewReader(data)}
+	// r := byteio.BigEndianReader{Reader: bytes.NewReader(data)}
 	rpcMessage := message.RpcMessage{
 		Codec:      header.CodecType,
 		ID:         int32(header.RequestID),
@@ -120,9 +120,9 @@ func (p *RpcPackageHandler) Read(ss getty.Session, data []byte) (interface{}, in
 		HeadMap:    header.Meta,
 	}
 
-	if header.MessageType == message.GettyRequestType_HeartbeatRequest {
+	if header.MessageType == message.GettyRequestTypeHeartbeatRequest {
 		rpcMessage.Body = message.HeartBeatMessagePing
-	} else if header.MessageType == message.GettyRequestType_HeartbeatResponse {
+	} else if header.MessageType == message.GettyRequestTypeHeartbeatResponse {
 		rpcMessage.Body = message.HeartBeatMessagePong
 	} else {
 		if header.BodyLength > 0 {
@@ -153,15 +153,15 @@ func (p *RpcPackageHandler) Write(ss getty.Session, pkg interface{}) ([]byte, er
 	}
 
 	var bodyBytes []byte
-	if msg.Type != message.GettyRequestType_HeartbeatRequest &&
-		msg.Type != message.GettyRequestType_HeartbeatResponse {
+	if msg.Type != message.GettyRequestTypeHeartbeatRequest &&
+		msg.Type != message.GettyRequestTypeHeartbeatResponse {
 		bodyBytes = codec.GetCodecManager().Encode(codec.CodecType(msg.Codec), msg.Body)
 		totalLength += len(bodyBytes)
 	}
 
 	buf := bytes.NewByteBuffer([]byte{})
-	buf.WriteByte(message.MAGIC_CODE_BYTES[0])
-	buf.WriteByte(message.MAGIC_CODE_BYTES[1])
+	buf.WriteByte(message.MagicCodeBytes[0])
+	buf.WriteByte(message.MagicCodeBytes[1])
 	buf.WriteByte(message.VERSION)
 	buf.WriteUint32(uint32(totalLength))
 	buf.WriteUint16(uint16(headLength))

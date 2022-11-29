@@ -20,17 +20,16 @@ package codec
 import (
 	"math"
 
-	"github.com/seata/seata-go/pkg/common/bytes"
-	serror "github.com/seata/seata-go/pkg/common/error"
 	"github.com/seata/seata-go/pkg/protocol/message"
+	"github.com/seata/seata-go/pkg/util/bytes"
+	serror "github.com/seata/seata-go/pkg/util/errors"
 )
 
 func init() {
 	GetCodecManager().RegisterCodec(CodecTypeSeata, &BranchRegisterResponseCodec{})
 }
 
-type BranchRegisterResponseCodec struct {
-}
+type BranchRegisterResponseCodec struct{}
 
 func (g *BranchRegisterResponseCodec) Decode(in []byte) interface{} {
 	data := message.BranchRegisterResponse{}
@@ -40,7 +39,7 @@ func (g *BranchRegisterResponseCodec) Decode(in []byte) interface{} {
 	if data.ResultCode == message.ResultCodeFailed {
 		data.Msg = bytes.ReadString16Length(buf)
 	}
-	data.TransactionExceptionCode = serror.TransactionExceptionCode(bytes.ReadByte(buf))
+	data.TransactionErrorCode = serror.TransactionErrorCode(bytes.ReadByte(buf))
 	data.BranchId = int64(bytes.ReadUInt64(buf))
 
 	return data
@@ -58,12 +57,12 @@ func (c *BranchRegisterResponseCodec) Encode(in interface{}) []byte {
 		}
 		bytes.WriteString16Length(msg, buf)
 	}
-	buf.WriteByte(byte(data.TransactionExceptionCode))
+	buf.WriteByte(byte(data.TransactionErrorCode))
 	buf.WriteInt64(data.BranchId)
 
 	return buf.Bytes()
 }
 
 func (g *BranchRegisterResponseCodec) GetMessageType() message.MessageType {
-	return message.MessageType_BranchRegisterResult
+	return message.MessageTypeBranchRegisterResult
 }

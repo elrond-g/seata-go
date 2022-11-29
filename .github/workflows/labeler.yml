@@ -17,7 +17,7 @@
 
 # This workflow will help me to auto set up label for pull request
 
-name: "Pull Request Labeler"
+name: "pull request labeler"
 on:
   - pull_request_target
 
@@ -34,8 +34,8 @@ jobs:
           persist-credentials: false
           submodules: true
 
-      - uses: actions/labeler@v4
-        name: "Labeler"
+      - name: "labeler"
+        uses: actions/labeler@v4
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           configuration-path: .github/actions/labeler/labeler.yml

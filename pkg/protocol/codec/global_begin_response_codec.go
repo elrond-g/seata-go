@@ -20,17 +20,16 @@ package codec
 import (
 	"math"
 
-	"github.com/seata/seata-go/pkg/common/bytes"
-	serror "github.com/seata/seata-go/pkg/common/error"
 	"github.com/seata/seata-go/pkg/protocol/message"
+	"github.com/seata/seata-go/pkg/util/bytes"
+	serror "github.com/seata/seata-go/pkg/util/errors"
 )
 
 func init() {
 	GetCodecManager().RegisterCodec(CodecTypeSeata, &GlobalBeginResponseCodec{})
 }
 
-type GlobalBeginResponseCodec struct {
-}
+type GlobalBeginResponseCodec struct{}
 
 func (c *GlobalBeginResponseCodec) Encode(in interface{}) []byte {
 	data := in.(message.GlobalBeginResponse)
@@ -44,7 +43,7 @@ func (c *GlobalBeginResponseCodec) Encode(in interface{}) []byte {
 		}
 		bytes.WriteString16Length(msg, buf)
 	}
-	buf.WriteByte(byte(data.TransactionExceptionCode))
+	buf.WriteByte(byte(data.TransactionErrorCode))
 	bytes.WriteString16Length(data.Xid, buf)
 	bytes.WriteString16Length(string(data.ExtraData), buf)
 
@@ -59,7 +58,7 @@ func (g *GlobalBeginResponseCodec) Decode(in []byte) interface{} {
 	if data.ResultCode == message.ResultCodeFailed {
 		data.Msg = bytes.ReadString16Length(buf)
 	}
-	data.TransactionExceptionCode = serror.TransactionExceptionCode(bytes.ReadByte(buf))
+	data.TransactionErrorCode = serror.TransactionErrorCode(bytes.ReadByte(buf))
 	data.Xid = bytes.ReadString16Length(buf)
 	data.ExtraData = []byte(bytes.ReadString16Length(buf))
 
@@ -67,5 +66,5 @@ func (g *GlobalBeginResponseCodec) Decode(in []byte) interface{} {
 }
 
 func (g *GlobalBeginResponseCodec) GetMessageType() message.MessageType {
-	return message.MessageType_GlobalBeginResult
+	return message.MessageTypeGlobalBeginResult
 }

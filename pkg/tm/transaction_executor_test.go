@@ -21,6 +21,7 @@ import (
 	"context"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/agiledragon/gomonkey"
 	"github.com/pkg/errors"
@@ -58,7 +59,7 @@ func TestTransactionExecutorBegin(t *testing.T) {
 			wantErrString:      "transactionTemplate: begin transaction failed, error mock transaction executor begin",
 			wantHasMock:        true,
 			wantMockTargetName: "Begin",
-			wantMockFunction: func(_ *GlobalTransactionManager, ctx context.Context, tx *GlobalTransaction, i int32, s string) error {
+			wantMockFunction: func(_ *GlobalTransactionManager, ctx context.Context, tx *GlobalTransaction, i time.Duration, s string) error {
 				return errors.New("mock transaction executor begin")
 			},
 		},
@@ -84,7 +85,9 @@ func TestTransactionExecutorBegin(t *testing.T) {
 					assert.Equal(t, v.wantErrString, err.Error)
 				}
 			}(v)
-			Begin(v.ctx, v.name)
+			begin(v.ctx, &TransactionInfo{
+				Name: v.name,
+			})
 		}()
 
 		// rest up stub
@@ -100,7 +103,7 @@ func TestTransactionExecutorCommit(t *testing.T) {
 	SetTransactionRole(ctx, LAUNCHER)
 	SetTxStatus(ctx, message.GlobalStatusBegin)
 	SetXID(ctx, "")
-	assert.Equal(t, "Commit xid should not be empty", CommitOrRollback(ctx, true).Error())
+	assert.Equal(t, "Commit xid should not be empty", commitOrRollback(ctx, true).Error())
 }
 
 func TestTransactionExecurotRollback(t *testing.T) {
@@ -109,6 +112,6 @@ func TestTransactionExecurotRollback(t *testing.T) {
 	SetTransactionRole(ctx, LAUNCHER)
 	SetTxStatus(ctx, message.GlobalStatusBegin)
 	SetXID(ctx, "")
-	errActual := CommitOrRollback(ctx, false)
+	errActual := commitOrRollback(ctx, false)
 	assert.Equal(t, "Rollback xid should not be empty", errActual.Error())
 }

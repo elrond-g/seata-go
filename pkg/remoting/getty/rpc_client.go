@@ -27,8 +27,8 @@ import (
 
 	gxsync "github.com/dubbogo/gost/sync"
 	"github.com/pkg/errors"
-	"github.com/seata/seata-go/pkg/common/log"
 	"github.com/seata/seata-go/pkg/config"
+	"github.com/seata/seata-go/pkg/util/log"
 )
 
 type RpcClient struct {
@@ -37,17 +37,12 @@ type RpcClient struct {
 	futures      *sync.Map
 }
 
-func init() {
-	newRpcClient()
-}
-
-func newRpcClient() *RpcClient {
+func InitRpcClient() {
 	rpcClient := &RpcClient{
 		conf:         config.GetClientConfig(),
 		gettyClients: make([]getty.Client, 0),
 	}
 	rpcClient.init()
-	return rpcClient
 }
 
 func (c *RpcClient) init() {

@@ -20,14 +20,14 @@ package client
 import (
 	"context"
 
-	"github.com/seata/seata-go/pkg/common/log"
+	"github.com/seata/seata-go/pkg/util/log"
 
 	"github.com/seata/seata-go/pkg/protocol/message"
 	"github.com/seata/seata-go/pkg/remoting/getty"
 )
 
 func init() {
-	getty.GetGettyClientHandlerInstance().RegisterProcessor(message.MessageType_HeartbeatMsg, &clientHeartBeatProcessor{})
+	getty.GetGettyClientHandlerInstance().RegisterProcessor(message.MessageTypeHeartbeatMsg, &clientHeartBeatProcessor{})
 }
 
 type clientHeartBeatProcessor struct{}

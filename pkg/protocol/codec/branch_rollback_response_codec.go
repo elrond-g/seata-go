@@ -20,18 +20,17 @@ package codec
 import (
 	"math"
 
-	"github.com/seata/seata-go/pkg/common/bytes"
-	serror "github.com/seata/seata-go/pkg/common/error"
 	"github.com/seata/seata-go/pkg/protocol/branch"
 	"github.com/seata/seata-go/pkg/protocol/message"
+	"github.com/seata/seata-go/pkg/util/bytes"
+	serror "github.com/seata/seata-go/pkg/util/errors"
 )
 
 func init() {
 	GetCodecManager().RegisterCodec(CodecTypeSeata, &BranchRollbackResponseCodec{})
 }
 
-type BranchRollbackResponseCodec struct {
-}
+type BranchRollbackResponseCodec struct{}
 
 func (g *BranchRollbackResponseCodec) Decode(in []byte) interface{} {
 	data := message.BranchRollbackResponse{}
@@ -41,7 +40,7 @@ func (g *BranchRollbackResponseCodec) Decode(in []byte) interface{} {
 	if data.ResultCode == message.ResultCodeFailed {
 		data.Msg = bytes.ReadString8Length(buf)
 	}
-	data.TransactionExceptionCode = serror.TransactionExceptionCode(bytes.ReadByte(buf))
+	data.TransactionErrorCode = serror.TransactionErrorCode(bytes.ReadByte(buf))
 	data.Xid = bytes.ReadString16Length(buf)
 	data.BranchId = int64(bytes.ReadUInt64(buf))
 	data.BranchStatus = branch.BranchStatus(bytes.ReadByte(buf))
@@ -61,7 +60,7 @@ func (g *BranchRollbackResponseCodec) Encode(in interface{}) []byte {
 		}
 		bytes.WriteString8Length(msg, buf)
 	}
-	buf.WriteByte(byte(data.TransactionExceptionCode))
+	buf.WriteByte(byte(data.TransactionErrorCode))
 	bytes.WriteString16Length(data.Xid, buf)
 	buf.WriteInt64(data.BranchId)
 	buf.WriteByte(byte(data.BranchStatus))
@@ -70,5 +69,5 @@ func (g *BranchRollbackResponseCodec) Encode(in interface{}) []byte {
 }
 
 func (g *BranchRollbackResponseCodec) GetMessageType() message.MessageType {
-	return message.MessageType_BranchRollbackResult
+	return message.MessageTypeBranchRollbackResult
 }

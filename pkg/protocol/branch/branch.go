@@ -21,14 +21,17 @@ import (
 	"fmt"
 )
 
-type BranchType int8
-type BranchStatus int8
+type (
+	BranchType   int8
+	BranchStatus int8
+)
 
 const (
-	BranchTypeAT   BranchType = 0
-	BranchTypeTCC  BranchType = 1
-	BranchTypeSAGA BranchType = 2
-	BranchTypeXA   BranchType = 3
+	BranchTypeUnknow BranchType = -1
+	BranchTypeAT     BranchType = 0
+	BranchTypeTCC    BranchType = 1
+	BranchTypeSAGA   BranchType = 2
+	BranchTypeXA     BranchType = 3
 )
 
 const (

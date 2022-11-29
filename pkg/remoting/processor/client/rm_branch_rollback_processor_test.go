@@ -21,26 +21,26 @@ import (
 	"context"
 	"testing"
 
+	"github.com/seata/seata-go/pkg/rm/tcc"
+
 	model2 "github.com/seata/seata-go/pkg/protocol/branch"
 	"github.com/seata/seata-go/pkg/protocol/codec"
 	"github.com/seata/seata-go/pkg/protocol/message"
 	"github.com/seata/seata-go/pkg/rm"
-	"github.com/seata/seata-go/pkg/rm/tcc"
 )
 
 func TestRmBranchRollbackProcessor(t *testing.T) {
-
 	// testcases
-	var tests = []struct {
+	tests := []struct {
 		name    string             // testcase name
 		rpcMsg  message.RpcMessage // rpcMessage case
-		wantErr bool               //want testcase err or not
+		wantErr bool               // want testcase err or not
 	}{
 		{
 			name: "rbr-testcase1-failure",
 			rpcMsg: message.RpcMessage{
 				ID:         223,
-				Type:       message.GettyRequestType(message.MessageType_BranchRollback),
+				Type:       message.GettyRequestType(message.MessageTypeBranchRollback),
 				Codec:      byte(codec.CodecTypeSeata),
 				Compressor: byte(1),
 				HeadMap: map[string]string{
@@ -78,5 +78,4 @@ func TestRmBranchRollbackProcessor(t *testing.T) {
 			}
 		})
 	}
-
 }

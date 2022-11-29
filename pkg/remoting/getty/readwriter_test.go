@@ -19,6 +19,7 @@ package getty
 
 import (
 	"testing"
+	"time"
 
 	"github.com/seata/seata-go/pkg/protocol/codec"
 	"github.com/seata/seata-go/pkg/protocol/message"
@@ -28,7 +29,7 @@ import (
 func TestRpcPackageHandler(t *testing.T) {
 	msg := message.RpcMessage{
 		ID:         1123,
-		Type:       message.GettyRequestType_RequestSync,
+		Type:       message.GettyRequestTypeRequestSync,
 		Codec:      byte(codec.CodecTypeSeata),
 		Compressor: byte(1),
 		HeadMap: map[string]string{
@@ -37,7 +38,7 @@ func TestRpcPackageHandler(t *testing.T) {
 			"address": "Beijing",
 		},
 		Body: message.GlobalBeginRequest{
-			Timeout:         100,
+			Timeout:         2 * time.Second,
 			TransactionName: "SeataGoTransaction",
 		},
 	}

@@ -18,17 +18,16 @@
 package codec
 
 import (
-	"github.com/seata/seata-go/pkg/common/bytes"
 	"github.com/seata/seata-go/pkg/protocol/branch"
 	"github.com/seata/seata-go/pkg/protocol/message"
+	"github.com/seata/seata-go/pkg/util/bytes"
 )
 
 func init() {
 	GetCodecManager().RegisterCodec(CodecTypeSeata, &BranchRollbackRequestCodec{})
 }
 
-type BranchRollbackRequestCodec struct {
-}
+type BranchRollbackRequestCodec struct{}
 
 func (g *BranchRollbackRequestCodec) Decode(in []byte) interface{} {
 	data := message.BranchRollbackRequest{}
@@ -57,5 +56,5 @@ func (g *BranchRollbackRequestCodec) Encode(in interface{}) []byte {
 }
 
 func (g *BranchRollbackRequestCodec) GetMessageType() message.MessageType {
-	return message.MessageType_BranchRollback
+	return message.MessageTypeBranchRollback
 }

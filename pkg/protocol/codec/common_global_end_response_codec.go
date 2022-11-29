@@ -20,13 +20,12 @@ package codec
 import (
 	"math"
 
-	"github.com/seata/seata-go/pkg/common/bytes"
-	serror "github.com/seata/seata-go/pkg/common/error"
 	"github.com/seata/seata-go/pkg/protocol/message"
+	"github.com/seata/seata-go/pkg/util/bytes"
+	serror "github.com/seata/seata-go/pkg/util/errors"
 )
 
-type CommonGlobalEndResponseCodec struct {
-}
+type CommonGlobalEndResponseCodec struct{}
 
 func (c *CommonGlobalEndResponseCodec) Encode(in interface{}) []byte {
 	data := in.(message.AbstractGlobalEndResponse)
@@ -40,7 +39,7 @@ func (c *CommonGlobalEndResponseCodec) Encode(in interface{}) []byte {
 		}
 		bytes.WriteString16Length(msg, buf)
 	}
-	buf.WriteByte(byte(data.TransactionExceptionCode))
+	buf.WriteByte(byte(data.TransactionErrorCode))
 	buf.WriteByte(byte(data.GlobalStatus))
 
 	return buf.Bytes()
@@ -54,7 +53,7 @@ func (c *CommonGlobalEndResponseCodec) Decode(in []byte) interface{} {
 	if data.ResultCode == message.ResultCodeFailed {
 		data.Msg = bytes.ReadString16Length(buf)
 	}
-	data.TransactionExceptionCode = serror.TransactionExceptionCode(bytes.ReadByte(buf))
+	data.TransactionErrorCode = serror.TransactionErrorCode(bytes.ReadByte(buf))
 	data.GlobalStatus = message.GlobalStatus(bytes.ReadByte(buf))
 
 	return data

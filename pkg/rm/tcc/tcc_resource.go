@@ -23,11 +23,12 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/seata/seata-go/pkg/common"
-	"github.com/seata/seata-go/pkg/common/log"
+	"github.com/seata/seata-go/pkg/constant"
 	"github.com/seata/seata-go/pkg/protocol/branch"
 	"github.com/seata/seata-go/pkg/rm"
+	"github.com/seata/seata-go/pkg/rm/tcc/fence/enum"
 	"github.com/seata/seata-go/pkg/tm"
+	"github.com/seata/seata-go/pkg/util/log"
 )
 
 var (
@@ -89,23 +90,24 @@ type TCCResourceManager struct {
 	resourceManagerMap sync.Map
 }
 
-// register transaction branch
-func (t *TCCResourceManager) BranchRegister(ctx context.Context, branchType branch.BranchType, resourceId, clientId, xid, applicationData, lockKeys string) (int64, error) {
-	return t.rmRemoting.BranchRegister(branch.BranchTypeTCC, resourceId, clientId, xid, applicationData, lockKeys)
+// BranchRegister register transaction branch
+func (t *TCCResourceManager) BranchRegister(ctx context.Context, param rm.BranchRegisterParam) (int64, error) {
+	return t.rmRemoting.BranchRegister(param)
 }
 
-func (t *TCCResourceManager) BranchReport(ctx context.Context, ranchType branch.BranchType, xid string, branchId int64, status branch.BranchStatus, applicationData string) error {
-	//TODO implement me
-	panic("implement me")
+// BranchReport report status of transaction branch
+func (t *TCCResourceManager) BranchReport(ctx context.Context, param rm.BranchReportParam) error {
+	return t.rmRemoting.BranchReport(param)
 }
 
-func (t *TCCResourceManager) LockQuery(ctx context.Context, ranchType branch.BranchType, resourceId, xid, lockKeys string) (bool, error) {
-	//TODO implement me
+// LockQuery query lock status of transaction branch
+func (t *TCCResourceManager) LockQuery(ctx context.Context, param rm.LockQueryParam) (bool, error) {
+	// TODO implement me
 	panic("implement me")
 }
 
 func (t *TCCResourceManager) UnregisterResource(resource rm.Resource) error {
-	//TODO implement me
+	// TODO implement me
 	panic("implement me")
 }
 
@@ -122,16 +124,24 @@ func (t *TCCResourceManager) GetCachedResources() *sync.Map {
 }
 
 // Commit a branch transaction
-func (t *TCCResourceManager) BranchCommit(ctx context.Context, ranchType branch.BranchType, xid string, branchID int64, resourceID string, applicationData []byte) (branch.BranchStatus, error) {
+func (t *TCCResourceManager) BranchCommit(ctx context.Context, branchResource rm.BranchResource) (branch.BranchStatus, error) {
 	var tccResource *TCCResource
-	if resource, ok := t.resourceManagerMap.Load(resourceID); !ok {
-		err := fmt.Errorf("TCC resource is not exist, resourceId: %s", resourceID)
+	if resource, ok := t.resourceManagerMap.Load(branchResource.ResourceId); !ok {
+		err := fmt.Errorf("TCC resource is not exist, resourceId: %s", branchResource.ResourceId)
 		return 0, err
 	} else {
 		tccResource, _ = resource.(*TCCResource)
 	}
 
-	_, err := tccResource.TwoPhaseAction.Commit(ctx, t.getBusinessActionContext(xid, branchID, resourceID, applicationData))
+	businessActionContext := t.getBusinessActionContext(branchResource.Xid, branchResource.BranchId, branchResource.ResourceId, branchResource.ApplicationData)
+
+	// to set up the fence phase
+	ctx = tm.InitSeataContext(ctx)
+	tm.SetXID(ctx, branchResource.Xid)
+	tm.SetFencePhase(ctx, enum.FencePhaseCommit)
+	tm.SetBusinessActionContext(ctx, businessActionContext)
+
+	_, err := tccResource.TwoPhaseAction.Commit(ctx, businessActionContext)
 	if err != nil {
 		return branch.BranchStatusPhasetwoCommitFailedRetryable, err
 	}
@@ -139,13 +149,13 @@ func (t *TCCResourceManager) BranchCommit(ctx context.Context, ranchType branch.
 }
 
 func (t *TCCResourceManager) getBusinessActionContext(xid string, branchID int64, resourceID string, applicationData []byte) *tm.BusinessActionContext {
-	var actionContextMap = make(map[string]interface{}, 2)
+	actionContextMap := make(map[string]interface{}, 2)
 	if len(applicationData) > 0 {
 		var tccContext map[string]interface{}
 		if err := json.Unmarshal(applicationData, &tccContext); err != nil {
 			panic("application data failed to unmarshl as json")
 		}
-		if v, ok := tccContext[common.ActionContext]; ok {
+		if v, ok := tccContext[constant.ActionContext]; ok {
 			actionContextMap = v.(map[string]interface{})
 		}
 	}
@@ -159,16 +169,24 @@ func (t *TCCResourceManager) getBusinessActionContext(xid string, branchID int64
 }
 
 // Rollback a branch transaction
-func (t *TCCResourceManager) BranchRollback(ctx context.Context, ranchType branch.BranchType, xid string, branchID int64, resourceID string, applicationData []byte) (branch.BranchStatus, error) {
+func (t *TCCResourceManager) BranchRollback(ctx context.Context, branchResource rm.BranchResource) (branch.BranchStatus, error) {
 	var tccResource *TCCResource
-	if resource, ok := t.resourceManagerMap.Load(resourceID); !ok {
-		err := fmt.Errorf("CC resource is not exist, resourceId: %s", resourceID)
+	if resource, ok := t.resourceManagerMap.Load(branchResource.ResourceId); !ok {
+		err := fmt.Errorf("CC resource is not exist, resourceId: %s", branchResource.ResourceId)
 		return 0, err
 	} else {
 		tccResource, _ = resource.(*TCCResource)
 	}
 
-	_, err := tccResource.TwoPhaseAction.Rollback(ctx, t.getBusinessActionContext(xid, branchID, resourceID, applicationData))
+	businessActionContext := t.getBusinessActionContext(branchResource.Xid, branchResource.BranchId, branchResource.ResourceId, branchResource.ApplicationData)
+
+	// to set up the fence phase
+	ctx = tm.InitSeataContext(ctx)
+	tm.SetXID(ctx, branchResource.Xid)
+	tm.SetFencePhase(ctx, enum.FencePhaseRollback)
+	tm.SetBusinessActionContext(ctx, businessActionContext)
+
+	_, err := tccResource.TwoPhaseAction.Rollback(ctx, businessActionContext)
 	if err != nil {
 		return branch.BranchStatusPhasetwoRollbackFailedRetryable, err
 	}

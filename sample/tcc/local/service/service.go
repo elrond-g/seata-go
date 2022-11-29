@@ -24,8 +24,8 @@ import (
 
 	"github.com/seata/seata-go/pkg/rm/tcc"
 
-	"github.com/seata/seata-go/pkg/common/log"
 	"github.com/seata/seata-go/pkg/tm"
+	"github.com/seata/seata-go/pkg/util/log"
 )
 
 var (
@@ -36,10 +36,9 @@ var (
 	tccService2Once sync.Once
 )
 
-type TestTCCServiceBusiness struct {
-}
+type TestTCCServiceBusiness struct{}
 
-func NewTestTCCServiceBusinessProxy() *tcc.TCCServiceProxy {
+func NewTestTCCServiceBusiness1Proxy() *tcc.TCCServiceProxy {
 	if tccService != nil {
 		return tccService
 	}
@@ -49,15 +48,11 @@ func NewTestTCCServiceBusinessProxy() *tcc.TCCServiceProxy {
 		if err != nil {
 			panic(fmt.Errorf("get TestTCCServiceBusiness tcc service proxy error, %v", err.Error()))
 		}
-		err = tccService.RegisterResource()
-		if err != nil {
-			panic(fmt.Errorf("TestTCCServiceBusiness register resource error, %v", err.Error()))
-		}
 	})
 	return tccService
 }
 
-func (T TestTCCServiceBusiness) Prepare(ctx context.Context, params ...interface{}) (bool, error) {
+func (T TestTCCServiceBusiness) Prepare(ctx context.Context, params interface{}) (bool, error) {
 	log.Infof("TestTCCServiceBusiness Prepare, param %v", params)
 	return true, nil
 }
@@ -76,8 +71,7 @@ func (T TestTCCServiceBusiness) GetActionName() string {
 	return "TestTCCServiceBusiness"
 }
 
-type TestTCCServiceBusiness2 struct {
-}
+type TestTCCServiceBusiness2 struct{}
 
 func NewTestTCCServiceBusiness2Proxy() *tcc.TCCServiceProxy {
 	if tccService2 != nil {
@@ -89,15 +83,11 @@ func NewTestTCCServiceBusiness2Proxy() *tcc.TCCServiceProxy {
 		if err != nil {
 			panic(fmt.Errorf("TestTCCServiceBusiness2 get tcc service proxy error, %v", err.Error()))
 		}
-		err = tccService2.RegisterResource()
-		if err != nil {
-			panic(fmt.Errorf("TestTCCServiceBusiness2 register resource error, %v", err.Error()))
-		}
 	})
 	return tccService2
 }
 
-func (T TestTCCServiceBusiness2) Prepare(ctx context.Context, params ...interface{}) (bool, error) {
+func (T TestTCCServiceBusiness2) Prepare(ctx context.Context, params interface{}) (bool, error) {
 	log.Infof("TestTCCServiceBusiness2 Prepare, param %v", params)
 	return true, nil
 }

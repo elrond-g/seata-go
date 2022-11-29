@@ -20,45 +20,36 @@ package main
 import (
 	"context"
 
-	"dubbo.apache.org/dubbo-go/v3/common/logger"
 	"dubbo.apache.org/dubbo-go/v3/config"
 	_ "dubbo.apache.org/dubbo-go/v3/imports"
-	_ "github.com/seata/seata-go/pkg/imports"
-	"github.com/seata/seata-go/pkg/integration"
-	"github.com/seata/seata-go/pkg/rm/tcc"
+	"github.com/seata/seata-go/pkg/client"
 	"github.com/seata/seata-go/pkg/tm"
+	"github.com/seata/seata-go/pkg/util/log"
 	"github.com/seata/seata-go/sample/tcc/dubbo/client/service"
 )
 
 // need to setup environment variable "DUBBO_GO_CONFIG_PATH" to "conf/dubbogo.yml" before run
 func main() {
-	integration.UseDubbo()
+	client.Init()
 	config.SetConsumerService(service.UserProviderInstance)
-	err := config.Load()
-	if err != nil {
+	if err := config.Load(); err != nil {
 		panic(err)
 	}
-	test()
+	run()
 }
 
-func test() {
-	var err error
-	ctx := tm.Begin(context.Background(), "TestTCCServiceBusiness")
-	defer func() {
-		resp := tm.CommitOrRollback(ctx, err == nil)
-		logger.Infof("tx result %v", resp)
-		<-make(chan struct{})
-	}()
+func run() {
+	tm.WithGlobalTx(context.Background(), &tm.TransactionInfo{
+		Name: "TccSampleLocalGlobalTx",
+	}, business)
+	<-make(chan struct{})
+}
 
-	userProviderProxy, err := tcc.NewTCCServiceProxy(service.UserProviderInstance)
-	if err != nil {
-		logger.Infof("userProviderProxyis not tcc service")
-		return
+func business(ctx context.Context) (re error) {
+	if resp, re := service.UserProviderInstance.Prepare(ctx, 1); re != nil {
+		log.Infof("response prepare: %v", re)
+	} else {
+		log.Infof("get resp %#v", resp)
 	}
-	resp, err := userProviderProxy.Prepare(ctx, 1)
-	if err != nil {
-		logger.Infof("response prepare: %v", err)
-		return
-	}
-	logger.Infof("get resp %#v", resp)
+	return
 }

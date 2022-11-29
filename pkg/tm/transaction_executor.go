@@ -22,30 +22,71 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/seata/seata-go/pkg/common/log"
+	"github.com/pkg/errors"
+
 	"github.com/seata/seata-go/pkg/protocol/message"
+	"github.com/seata/seata-go/pkg/util/log"
 )
 
+const DefaultTimeOut = time.Second * 30
+
 type TransactionInfo struct {
-	TimeOut           int32
+	TimeOut           time.Duration
 	Name              string
 	Propagation       Propagation
 	LockRetryInternal int64
 	LockRetryTimes    int64
 }
 
-func Begin(ctx context.Context, name string) context.Context {
+// CallbackWithCtx business callback definition
+type CallbackWithCtx func(ctx context.Context) error
+
+// WithGlobalTx begin a global transaction and make it step into committed or rollbacked status.
+func WithGlobalTx(ctx context.Context, ti *TransactionInfo, business CallbackWithCtx) (re error) {
+	if ti == nil {
+		return errors.New("global transaction config info is required.")
+	}
+	if ti.Name == "" {
+		return errors.New("global transaction name is required.")
+	}
+
+	if ctx, re = begin(ctx, ti); re != nil {
+		return
+	}
+	defer func() {
+		// business maybe to throw panic, so need to recover it here.
+		err := recover()
+		if err != nil {
+			log.Errorf("business callback panic:%v", err)
+		}
+		re = commitOrRollback(ctx, err == nil && re == nil)
+		log.Infof("global transaction result %v", re)
+	}()
+
+	re = business(ctx)
+
+	return
+}
+
+// begin a global transaction, it will obtain a xid from tc in tcp call.
+func begin(ctx context.Context, ti *TransactionInfo) (rc context.Context, re error) {
+	if ti == nil {
+		return nil, errors.New("transaction info is nil")
+	}
+	if ti.TimeOut == 0 {
+		ti.TimeOut = DefaultTimeOut
+	}
 	if !IsSeataContext(ctx) {
 		ctx = InitSeataContext(ctx)
 	}
 
-	SetTxName(ctx, name)
+	SetTxName(ctx, ti.Name)
 	if GetTransactionRole(ctx) == nil {
 		SetTransactionRole(ctx, LAUNCHER)
 	}
 
 	var tx *GlobalTransaction
-	if IsTransactionOpened(ctx) {
+	if IsGlobalTx(ctx) {
 		tx = &GlobalTransaction{
 			Xid:    GetXID(ctx),
 			Status: message.GlobalStatusBegin,
@@ -64,52 +105,39 @@ func Begin(ctx context.Context, name string) context.Context {
 		SetTxStatus(ctx, message.GlobalStatusUnKnown)
 	}
 
-	// todo timeout should read from config
-	err := GetGlobalTransactionManager().Begin(ctx, tx, 60000*30, name)
+	err := GetGlobalTransactionManager().Begin(ctx, tx, ti.TimeOut, ti.Name)
 	if err != nil {
-		panic(fmt.Sprintf("transactionTemplate: begin transaction failed, error %v", err))
+		re = fmt.Errorf("transactionTemplate: begin transaction failed, error %v", err)
 	}
 
-	return ctx
+	return ctx, re
 }
 
-// CommitOrRollback commit global transaction
-func CommitOrRollback(ctx context.Context, isSuccess bool) error {
+// commitOrRollback commit or rollback the global transaction
+func commitOrRollback(ctx context.Context, isSuccess bool) (re error) {
 	role := *GetTransactionRole(ctx)
 	if role == PARTICIPANT {
 		// Participant has no responsibility of rollback
 		log.Debugf("Ignore Rollback(): just involved in global transaction [%s]", GetXID(ctx))
-		return nil
+		return
 	}
+
 	tx := &GlobalTransaction{
 		Xid:    GetXID(ctx),
 		Status: *GetTxStatus(ctx),
 		Role:   role,
 	}
-	var (
-		err error
-		// todo retry and retryInterval should read from config
-		retry         = 10
-		retryInterval = 200 * time.Millisecond
-	)
-	for ; retry > 0; retry-- {
-		if isSuccess {
-			err = GetGlobalTransactionManager().Commit(ctx, tx)
-			if err != nil {
-				log.Infof("transactionTemplate: commit transaction failed, error %v", err)
-			}
-		} else {
-			err = GetGlobalTransactionManager().Rollback(ctx, tx)
-			if err != nil {
-				log.Infof("transactionTemplate: Rollback transaction failed, error %v", err)
-			}
+
+	if isSuccess {
+		if re = GetGlobalTransactionManager().Commit(ctx, tx); re != nil {
+			log.Errorf("transactionTemplate: commit transaction failed, error %v", re)
 		}
-		if err == nil {
-			break
-		} else {
-			time.Sleep(retryInterval)
+	} else {
+		if re = GetGlobalTransactionManager().Rollback(ctx, tx); re != nil {
+			log.Errorf("transactionTemplate: Rollback transaction failed, error %v", re)
 		}
 	}
+
 	// todo unbind xid
-	return err
+	return
 }

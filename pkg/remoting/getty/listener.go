@@ -22,11 +22,11 @@ import (
 	"sync"
 
 	getty "github.com/apache/dubbo-getty"
-	"github.com/seata/seata-go/pkg/common/log"
 	"github.com/seata/seata-go/pkg/config"
 	"github.com/seata/seata-go/pkg/protocol/codec"
 	"github.com/seata/seata-go/pkg/protocol/message"
 	"github.com/seata/seata-go/pkg/remoting/processor"
+	"github.com/seata/seata-go/pkg/util/log"
 	"go.uber.org/atomic"
 )
 
@@ -120,7 +120,7 @@ func (g *gettyClientHandler) OnCron(session getty.Session) {
 func (g *gettyClientHandler) transferBeatHeart(session getty.Session, msg message.HeartBeatMessage) {
 	rpcMessage := message.RpcMessage{
 		ID:         int32(g.idGenerator.Inc()),
-		Type:       message.GettyRequestType_HeartbeatRequest,
+		Type:       message.GettyRequestTypeHeartbeatRequest,
 		Codec:      byte(codec.CodecTypeSeata),
 		Compressor: 0,
 		Body:       msg,

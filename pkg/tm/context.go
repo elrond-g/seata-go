@@ -21,6 +21,7 @@ import (
 	"context"
 
 	"github.com/seata/seata-go/pkg/protocol/message"
+	"github.com/seata/seata-go/pkg/rm/tcc/fence/enum"
 )
 
 type ContextParam string
@@ -33,6 +34,8 @@ type BusinessActionContext struct {
 	Xid           string
 	BranchId      int64
 	ActionName    string
+	IsDelayReport bool
+	IsUpdated     bool
 	ActionContext map[string]interface{}
 }
 
@@ -40,7 +43,7 @@ type ContextVariable struct {
 	TxName                string
 	Xid                   string
 	XidCopy               string
-	Status                *message.GlobalStatus
+	FencePhase            enum.FencePhase
 	TxRole                *GlobalTransactionRole
 	BusinessActionContext *BusinessActionContext
 	TxStatus              *message.GlobalStatus
@@ -114,7 +117,7 @@ func SetTransactionRole(ctx context.Context, role GlobalTransactionRole) {
 	}
 }
 
-func IsTransactionOpened(ctx context.Context) bool {
+func IsGlobalTx(ctx context.Context) bool {
 	variable := ctx.Value(seataContextVariable)
 	if variable == nil {
 		return false
@@ -155,4 +158,19 @@ func UnbindXid(ctx context.Context) {
 		variable.(*ContextVariable).Xid = ""
 		variable.(*ContextVariable).XidCopy = ""
 	}
+}
+
+func SetFencePhase(ctx context.Context, phase enum.FencePhase) {
+	variable := ctx.Value(seataContextVariable)
+	if variable != nil {
+		variable.(*ContextVariable).FencePhase = phase
+	}
+}
+
+func GetFencePhase(ctx context.Context) enum.FencePhase {
+	variable := ctx.Value(seataContextVariable)
+	if variable != nil {
+		return variable.(*ContextVariable).FencePhase
+	}
+	return enum.FencePhaseNotExist
 }
