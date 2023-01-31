@@ -20,13 +20,12 @@ package tcc
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"sync"
 	"time"
 
 	gostnet "github.com/dubbogo/gost/net"
-	"github.com/pkg/errors"
-
 	"github.com/seata/seata-go/pkg/constant"
 	"github.com/seata/seata-go/pkg/protocol/branch"
 	"github.com/seata/seata-go/pkg/rm"
@@ -92,9 +91,9 @@ func (t *TCCServiceProxy) Prepare(ctx context.Context, params interface{}) (inte
 // registeBranch send register branch transaction request
 func (t *TCCServiceProxy) registeBranch(ctx context.Context, params interface{}) error {
 	if !tm.IsGlobalTx(ctx) {
-		err := errors.New("BranchRegister error, transaction should be opened")
-		log.Errorf(err.Error())
-		return err
+		errStr := "BranchRegister error, transaction should be opened"
+		log.Errorf(errStr)
+		return fmt.Errorf(errStr)
 	}
 
 	tccContext := t.initBusinessActionContext(ctx, params)
@@ -241,10 +240,10 @@ func obtainStructValueType(o interface{}) (bool, reflect.Value, reflect.Type) {
 	}
 }
 
-func (t *TCCServiceProxy) GetTransactionInfo() tm.TransactionInfo {
+func (t *TCCServiceProxy) GetTransactionInfo() tm.GtxConfig {
 	// todo replace with config
-	return tm.TransactionInfo{
-		TimeOut: time.Second * 10,
+	return tm.GtxConfig{
+		Timeout: time.Second * 10,
 		Name:    t.GetActionName(),
 		// Propagation, Propagation
 		// LockRetryInternal, int64

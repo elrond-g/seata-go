@@ -21,6 +21,7 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -40,13 +41,14 @@ const (
 	SeataXAMySQLDriver = "seata-xa-mysql"
 )
 
-func init() {
+func initDriver() {
 	sql.Register(SeataATMySQLDriver, &seataATDriver{
 		seataDriver: &seataDriver{
 			transType: types.ATMode,
 			target:    mysql.MySQLDriver{},
 		},
 	})
+
 	sql.Register(SeataXAMySQLDriver, &seataXADriver{
 		seataDriver: &seataDriver{
 			transType: types.XAMode,
@@ -96,22 +98,19 @@ func (d *seataXADriver) OpenConnector(name string) (c driver.Connector, err erro
 }
 
 type seataDriver struct {
-	transType types.TransactionType
+	transType types.TransactionMode
 	target    driver.Driver
 }
 
+// Open never be called, because seataDriver implemented dri.DriverContext interface.
+// reference package: datasource/sql [https://cs.opensource.google/go/go/+/master:src/database/sql/sql.go;l=813]
+// and maybe the sql.BD will be call Driver() method, but it obtain the Driver is fron Connector that is proxed by seataConnector.
 func (d *seataDriver) Open(name string) (driver.Conn, error) {
-	conn, err := d.target.Open(name)
-	if err != nil {
-		log.Errorf("open db connection: %w", err)
-		return nil, err
-	}
-
-	return conn, nil
+	return nil, errors.New(("operation unsupport."))
 }
 
 func (d *seataDriver) OpenConnector(name string) (c driver.Connector, err error) {
-	c = &dsnConnector{dsn: name, driver: d}
+	c = &dsnConnector{dsn: name, driver: d.target}
 	if driverCtx, ok := d.target.(driver.DriverContext); ok {
 		c, err = driverCtx.OpenConnector(name)
 		if err != nil {
@@ -160,7 +159,7 @@ func getOpenConnectorProxy(connector driver.Connector, dbType types.DBType, db *
 
 	if err := conf.validate(); err != nil {
 		log.Errorf("invalid conf: %w", err)
-		return connector, err
+		return nil, err
 	}
 
 	cfg, _ := mysql.ParseDSN(dataSourceName)
@@ -212,11 +211,9 @@ func (c *seataServerConfig) validate() error {
 }
 
 // loadConfig
-// TODO wait finish
 func loadConfig() *seataServerConfig {
-	// 先设置默认配置
-
-	// 从默认文件获取
+	// set default value first.
+	// todo read from configuration file.
 	return &seataServerConfig{
 		GroupID:    "DEFAULT_GROUP",
 		BranchType: branch.BranchTypeAT,

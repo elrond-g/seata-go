@@ -20,9 +20,8 @@ package sql
 import (
 	"context"
 	"database/sql/driver"
+	"fmt"
 	"sync"
-
-	"github.com/pkg/errors"
 
 	"github.com/seata/seata-go/pkg/datasource/sql/datasource"
 	"github.com/seata/seata-go/pkg/protocol/branch"
@@ -156,11 +155,11 @@ func (tx *Tx) register(ctx *types.TransactionContext) error {
 	}
 	request := rm.BranchRegisterParam{
 		Xid:        ctx.XID,
-		BranchType: ctx.TransType.GetBranchType(),
+		BranchType: ctx.TransactionMode.BranchType(),
 		ResourceId: ctx.ResourceID,
 		LockKeys:   lockKey,
 	}
-	dataSourceManager := datasource.GetDataSourceManager(ctx.TransType.GetBranchType())
+	dataSourceManager := datasource.GetDataSourceManager(ctx.TransactionMode.BranchType())
 	branchId, err := dataSourceManager.BranchRegister(context.Background(), request)
 	if err != nil {
 		log.Infof("Failed to report branch status: %s", err.Error())
@@ -181,9 +180,9 @@ func (tx *Tx) report(success bool) error {
 		BranchId: int64(tx.tranCtx.BranchID),
 		Status:   status,
 	}
-	dataSourceManager := datasource.GetDataSourceManager(tx.tranCtx.TransType.GetBranchType())
+	dataSourceManager := datasource.GetDataSourceManager(tx.tranCtx.TransactionMode.BranchType())
 	if dataSourceManager == nil {
-		return errors.New("get dataSourceManager failed")
+		return fmt.Errorf("get dataSourceManager failed")
 	}
 	retry := REPORT_RETRY_COUNT
 	for retry > 0 {

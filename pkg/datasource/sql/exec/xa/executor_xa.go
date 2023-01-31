@@ -19,33 +19,32 @@ package xa
 
 import (
 	"context"
+	"database/sql/driver"
 
 	"github.com/seata/seata-go/pkg/datasource/sql/exec"
 	"github.com/seata/seata-go/pkg/datasource/sql/types"
 )
 
-// todo
-// 完善XA prepare
-//
+// XAExecutor The XA transaction manager.
 type XAExecutor struct {
-	is []exec.SQLHook
-	ex exec.SQLExecutor
+	hooks []exec.SQLHook
+	ex    exec.SQLExecutor
 }
 
-// Interceptors
-func (e *XAExecutor) Interceptors(interceptors []exec.SQLHook) {
-	e.is = interceptors
+// Interceptors set xa executor hooks
+func (e *XAExecutor) Interceptors(hooks []exec.SQLHook) {
+	e.hooks = hooks
 }
 
 // ExecWithNamedValue
 func (e *XAExecutor) ExecWithNamedValue(ctx context.Context, execCtx *types.ExecContext, f exec.CallbackWithNamedValue) (types.ExecResult, error) {
-	for i := range e.is {
-		e.is[i].Before(ctx, execCtx)
+	for _, hook := range e.hooks {
+		hook.Before(ctx, execCtx)
 	}
 
 	defer func() {
-		for i := range e.is {
-			e.is[i].After(ctx, execCtx)
+		for _, hook := range e.hooks {
+			hook.After(ctx, execCtx)
 		}
 	}()
 
@@ -57,14 +56,14 @@ func (e *XAExecutor) ExecWithNamedValue(ctx context.Context, execCtx *types.Exec
 }
 
 // ExecWithValue
-func (e *XAExecutor) ExecWithValue(ctx context.Context, execCtx *types.ExecContext, f exec.CallbackWithValue) (types.ExecResult, error) {
-	for i := range e.is {
-		e.is[i].Before(ctx, execCtx)
+func (e *XAExecutor) ExecWithValue(ctx context.Context, execCtx *types.ExecContext, f exec.CallbackWithNamedValue) (types.ExecResult, error) {
+	for _, hook := range e.hooks {
+		hook.Before(ctx, execCtx)
 	}
 
 	defer func() {
-		for i := range e.is {
-			e.is[i].After(ctx, execCtx)
+		for _, hook := range e.hooks {
+			hook.After(ctx, execCtx)
 		}
 	}()
 
@@ -72,5 +71,14 @@ func (e *XAExecutor) ExecWithValue(ctx context.Context, execCtx *types.ExecConte
 		return e.ex.ExecWithValue(ctx, execCtx, f)
 	}
 
-	return f(ctx, execCtx.Query, execCtx.Values)
+	nvargs := make([]driver.NamedValue, len(execCtx.Values))
+	for i, value := range execCtx.Values {
+		nvargs = append(nvargs, driver.NamedValue{
+			Value:   value,
+			Ordinal: i,
+		})
+	}
+	execCtx.NamedValues = nvargs
+
+	return f(ctx, execCtx.Query, execCtx.NamedValues)
 }

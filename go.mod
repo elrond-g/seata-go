@@ -5,16 +5,17 @@ go 1.18
 require (
 	dubbo.apache.org/dubbo-go/v3 v3.0.3-rc2
 	github.com/DATA-DOG/go-sqlmock v1.5.0
-	github.com/agiledragon/gomonkey v2.0.2+incompatible
+	github.com/agiledragon/gomonkey/v2 v2.2.0
 	github.com/apache/dubbo-getty v1.4.9-0.20220825024508-3da63c3257fa
 	github.com/arana-db/parser v0.2.5
+	github.com/dsnet/compress v0.0.1
 	github.com/dubbogo/gost v1.12.6-0.20220824084206-300e27e9e524
 	github.com/gin-gonic/gin v1.8.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/goccy/go-json v0.9.7
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.3.0
-	github.com/mitchellh/copystructure v1.2.0
+	github.com/knadh/koanf v1.4.3
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/parnurzeal/gorequest v0.2.16
 	github.com/pierrec/lz4/v4 v4.1.17
@@ -81,11 +82,11 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/k0kubun/pp v3.0.1+incompatible // indirect
-	github.com/knadh/koanf v1.4.3 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
+	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect

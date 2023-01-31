@@ -15,30 +15,26 @@
  * limitations under the License.
  */
 
-package client
+package compressor
 
 import (
-	"sync"
+	"strings"
+	"testing"
 
-	"github.com/seata/seata-go/pkg/remoting/getty"
+	"github.com/stretchr/testify/assert"
 )
 
-var onceInitTmClient sync.Once
+func TestBzip2Compress(t *testing.T) {
+	str := strings.Repeat(" bzip2 ", 100)
 
-// InitTmClient init seata tm client
-func initTmClient() {
-	onceInitTmClient.Do(func() {
-		initConfig()
-		initRemoting()
-	})
-}
+	b := &Bzip2{}
+	compressRes, err := b.Compress([]byte(str))
+	assert.NoError(t, err)
+	t.Logf("compress res: %v", string(compressRes))
 
-// todo
-// initConfig init config processor
-func initConfig() {
-}
+	decompressRes, err := b.Decompress(compressRes)
+	assert.NoError(t, err)
+	assert.Equal(t, str, string(decompressRes))
 
-// initRemoting init rpc client
-func initRemoting() {
-	getty.InitRpcClient()
+	t.Logf("decompress res: %v", string(decompressRes))
 }

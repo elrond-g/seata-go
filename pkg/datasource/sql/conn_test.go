@@ -18,39 +18,19 @@
 package sql
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/seata/seata-go/pkg/datasource/sql/exec"
 	"github.com/seata/seata-go/pkg/datasource/sql/exec/xa"
 	"github.com/seata/seata-go/pkg/datasource/sql/types"
-	"github.com/seata/seata-go/pkg/util/reflectx"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestConn_BuildATExecutor(t *testing.T) {
-	executor, err := exec.BuildExecutor(types.DBTypeMySQL, types.ATMode, "SELECT * FROM user")
-
-	assert.NoError(t, err)
-	_, ok := executor.(*exec.BaseExecutor)
-	assert.True(t, ok, "need base executor")
-}
 
 func TestConn_BuildXAExecutor(t *testing.T) {
 	executor, err := exec.BuildExecutor(types.DBTypeMySQL, types.XAMode, "SELECT * FROM user")
 
 	assert.NoError(t, err)
-	val, ok := executor.(*exec.BaseExecutor)
-	assert.True(t, ok, "need base executor")
 
-	v := reflect.ValueOf(val)
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	field := v.FieldByName("ex")
-
-	fieldVal := reflectx.GetUnexportedField(field)
-
-	_, ok = fieldVal.(*xa.XAExecutor)
+	_, ok := executor.(*xa.XAExecutor)
 	assert.True(t, ok, "need xa executor")
 }

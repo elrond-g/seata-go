@@ -33,6 +33,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestMain(m *testing.M) {
+	Init()
+	m.Run()
+}
+
 func initAtConnTestResource(t *testing.T) (*gomock.Controller, *sql.DB, *mockSQLInterceptor, *mockTxHook) {
 	ctrl := gomock.NewController(t)
 
@@ -52,7 +57,7 @@ func initAtConnTestResource(t *testing.T) (*gomock.Controller, *sql.DB, *mockSQL
 		mockConn := mock.NewMockTestDriverConn(ctrl)
 		mockConn.EXPECT().Begin().AnyTimes().Return(mockTx, nil)
 		mockConn.EXPECT().BeginTx(gomock.Any(), gomock.Any()).AnyTimes().Return(mockTx, nil)
-		baseMoclConn(mockConn)
+		baseMockConn(mockConn)
 
 		connector := mock.NewMockTestDriverConnector(ctrl)
 		connector.EXPECT().Connect(gomock.Any()).AnyTimes().Return(mockConn, nil)
@@ -87,14 +92,14 @@ func TestATConn_ExecContext(t *testing.T) {
 		beforeHook := func(_ context.Context, execCtx *types.ExecContext) {
 			t.Logf("on exec xid=%s", execCtx.TxCtx.XID)
 			assert.Equal(t, tm.GetXID(ctx), execCtx.TxCtx.XID)
-			assert.Equal(t, types.ATMode, execCtx.TxCtx.TransType)
+			assert.Equal(t, types.ATMode, execCtx.TxCtx.TransactionMode)
 		}
 		mi.before = beforeHook
 
 		var comitCnt int32
 		beforeCommit := func(tx *Tx) {
 			atomic.AddInt32(&comitCnt, 1)
-			assert.Equal(t, types.ATMode, tx.tranCtx.TransType)
+			assert.Equal(t, types.ATMode, tx.tranCtx.TransactionMode)
 		}
 		ti.beforeCommit = beforeCommit
 
@@ -112,7 +117,7 @@ func TestATConn_ExecContext(t *testing.T) {
 	t.Run("not xid", func(t *testing.T) {
 		mi.before = func(_ context.Context, execCtx *types.ExecContext) {
 			assert.Equal(t, "", execCtx.TxCtx.XID)
-			assert.Equal(t, types.Local, execCtx.TxCtx.TransType)
+			assert.Equal(t, types.Local, execCtx.TxCtx.TransactionMode)
 		}
 
 		var comitCnt int32
@@ -149,7 +154,7 @@ func TestATConn_BeginTx(t *testing.T) {
 
 		mi.before = func(_ context.Context, execCtx *types.ExecContext) {
 			assert.Equal(t, "", execCtx.TxCtx.XID)
-			assert.Equal(t, types.Local, execCtx.TxCtx.TransType)
+			assert.Equal(t, types.Local, execCtx.TxCtx.TransactionMode)
 		}
 
 		var comitCnt int32
@@ -175,7 +180,7 @@ func TestATConn_BeginTx(t *testing.T) {
 
 		mi.before = func(_ context.Context, execCtx *types.ExecContext) {
 			assert.Equal(t, "", execCtx.TxCtx.XID)
-			assert.Equal(t, types.Local, execCtx.TxCtx.TransType)
+			assert.Equal(t, types.Local, execCtx.TxCtx.TransactionMode)
 		}
 
 		var comitCnt int32
@@ -203,7 +208,7 @@ func TestATConn_BeginTx(t *testing.T) {
 
 		mi.before = func(_ context.Context, execCtx *types.ExecContext) {
 			assert.Equal(t, tm.GetXID(ctx), execCtx.TxCtx.XID)
-			assert.Equal(t, types.ATMode, execCtx.TxCtx.TransType)
+			assert.Equal(t, types.ATMode, execCtx.TxCtx.TransactionMode)
 		}
 
 		var comitCnt int32

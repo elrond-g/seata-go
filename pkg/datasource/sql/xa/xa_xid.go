@@ -15,14 +15,16 @@
  * limitations under the License.
  */
 
-package tm
+package xa
 
-type SuspendedResourcesHolder struct {
-	Xid string
+type Xid interface {
+	GetFormatId() int
+	GetGlobalTransactionId() []byte
+	GetBranchQualifier() []byte
 }
 
-func NewSuspendedResourcesHolder(xid string) SuspendedResourcesHolder {
-	return SuspendedResourcesHolder{
-		Xid: xid,
-	}
+type XAXid interface {
+	Xid
+	GetGlobalXid() string
+	GetBranchId() int64
 }

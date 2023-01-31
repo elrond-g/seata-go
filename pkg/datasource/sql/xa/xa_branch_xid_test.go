@@ -15,14 +15,32 @@
  * limitations under the License.
  */
 
-package constant
+package xa
 
-const (
-	DeleteFrom                     = "DELETE FROM "
-	DefaultTransactionUndoLogTable = " undo_log "
-	// UndoLogTableName Todo get from config
-	UndoLogTableName = DefaultTransactionUndoLogTable
-	DeleteUndoLogSql = DeleteFrom + UndoLogTableName + " WHERE " + UndoLogBranchXid + " = ? AND " + UndoLogXid + " = ?"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-const ErrCodeTableNotExist = "1146"
+func TestXABranchXidBuild(t *testing.T) {
+	xid := "111"
+	branchId := int64(222)
+	x := Build(xid, branchId)
+	assert.Equal(t, x.GetGlobalXid(), xid)
+	assert.Equal(t, x.GetBranchId(), branchId)
+
+	assert.Equal(t, x.GetGlobalTransactionId(), []byte(xid))
+	assert.Equal(t, x.GetBranchQualifier(), []byte("-222"))
+}
+
+func TestXABranchXidBuildWithByte(t *testing.T) {
+	xid := []byte("111")
+	branchId := []byte(BranchIdPrefix + "222")
+	x := BuildWithByte(xid, branchId)
+	assert.Equal(t, x.GetGlobalTransactionId(), xid)
+	assert.Equal(t, x.GetBranchQualifier(), branchId)
+
+	assert.Equal(t, x.GetGlobalXid(), "111")
+	assert.Equal(t, x.GetBranchId(), int64(222))
+}

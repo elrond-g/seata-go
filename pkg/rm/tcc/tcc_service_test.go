@@ -26,7 +26,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/agiledragon/gomonkey"
+	"github.com/agiledragon/gomonkey/v2"
+
 	gostnet "github.com/dubbogo/gost/net"
 	"github.com/seata/seata-go/pkg/constant"
 	"github.com/stretchr/testify/assert"
@@ -46,6 +47,7 @@ var (
 )
 
 func InitMock() {
+	log.Init()
 	var (
 		registerResource = func(_ *TCCServiceProxy) error {
 			return nil
@@ -171,7 +173,6 @@ func TestGetOrCreateBusinessActionContext(t *testing.T) {
 			param: struct {
 				Context *tm.BusinessActionContext
 			}{
-
 				Context: &tm.BusinessActionContext{
 					ActionContext: map[string]interface{}{
 						"name": "Jack",
@@ -190,7 +191,6 @@ func TestGetOrCreateBusinessActionContext(t *testing.T) {
 			param: struct {
 				Context tm.BusinessActionContext
 			}{
-
 				Context: tm.BusinessActionContext{
 					ActionContext: map[string]interface{}{
 						"name": "Jack",
@@ -209,7 +209,6 @@ func TestGetOrCreateBusinessActionContext(t *testing.T) {
 			param: struct {
 				context tm.BusinessActionContext
 			}{
-
 				context: tm.BusinessActionContext{
 					ActionContext: map[string]interface{}{
 						"name": "Jack",
@@ -297,7 +296,7 @@ func TestTCCGetTransactionInfo(t1 *testing.T) {
 	tests := struct {
 		name   string
 		fields fields
-		want   tm.TransactionInfo
+		want   tm.GtxConfig
 	}{
 		"test1",
 		fields{
@@ -309,7 +308,7 @@ func TestTCCGetTransactionInfo(t1 *testing.T) {
 				TwoPhaseAction:  twoPhaseAction1,
 			},
 		},
-		tm.TransactionInfo{Name: "TwoPhaseDemoService", TimeOut: time.Second * 10, Propagation: 0, LockRetryInternal: 0, LockRetryTimes: 0},
+		tm.GtxConfig{Name: "TwoPhaseDemoService", Timeout: time.Second * 10, Propagation: 0, LockRetryInternal: 0, LockRetryTimes: 0},
 	}
 
 	t1.Run(tests.name, func(t1 *testing.T) {

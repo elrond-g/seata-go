@@ -17,28 +17,8 @@
 
 package tm
 
-import (
-	"sync"
+var config TmConfig
 
-	"github.com/seata/seata-go/pkg/remoting/getty"
-)
-
-var onceInitTmClient sync.Once
-
-// InitTmClient init seata tm client
-func InitTmClient() {
-	onceInitTmClient.Do(func() {
-		initConfig()
-		initRemoting()
-	})
-}
-
-// initConfig init config processor
-func initConfig() {
-	// todo implement
-}
-
-// initRemoting init rpc client
-func initRemoting() {
-	getty.InitRpcClient()
+func InitTm(tmConfig TmConfig) {
+	config = tmConfig
 }

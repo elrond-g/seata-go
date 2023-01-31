@@ -77,7 +77,7 @@ func (mi *mockTxHook) BeforeRollback(tx *Tx) {
 	}
 }
 
-func baseMoclConn(mockConn *mock.MockTestDriverConn) {
+func baseMockConn(mockConn *mock.MockTestDriverConn) {
 	mockConn.EXPECT().ExecContext(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&driver.ResultNoRows, nil)
 	mockConn.EXPECT().Exec(gomock.Any(), gomock.Any()).AnyTimes().Return(&driver.ResultNoRows, nil)
 	mockConn.EXPECT().ResetSession(gomock.Any()).AnyTimes().Return(nil)
@@ -103,7 +103,7 @@ func initXAConnTestResource(t *testing.T) (*gomock.Controller, *sql.DB, *mockSQL
 		mockConn := mock.NewMockTestDriverConn(ctrl)
 		mockConn.EXPECT().Begin().AnyTimes().Return(mockTx, nil)
 		mockConn.EXPECT().BeginTx(gomock.Any(), gomock.Any()).AnyTimes().Return(mockTx, nil)
-		baseMoclConn(mockConn)
+		baseMockConn(mockConn)
 
 		connector := mock.NewMockTestDriverConnector(ctrl)
 		connector.EXPECT().Connect(gomock.Any()).AnyTimes().Return(mockConn, nil)
@@ -138,14 +138,14 @@ func TestXAConn_ExecContext(t *testing.T) {
 		before := func(_ context.Context, execCtx *types.ExecContext) {
 			t.Logf("on exec xid=%s", execCtx.TxCtx.XID)
 			assert.Equal(t, tm.GetXID(ctx), execCtx.TxCtx.XID)
-			assert.Equal(t, types.XAMode, execCtx.TxCtx.TransType)
+			assert.Equal(t, types.XAMode, execCtx.TxCtx.TransactionMode)
 		}
 		mi.before = before
 
 		var comitCnt int32
 		beforeCommit := func(tx *Tx) {
 			atomic.AddInt32(&comitCnt, 1)
-			assert.Equal(t, tx.tranCtx.TransType, types.XAMode)
+			assert.Equal(t, tx.tranCtx.TransactionMode, types.XAMode)
 		}
 		ti.beforeCommit = beforeCommit
 
@@ -164,7 +164,7 @@ func TestXAConn_ExecContext(t *testing.T) {
 	t.Run("not xid", func(t *testing.T) {
 		before := func(_ context.Context, execCtx *types.ExecContext) {
 			assert.Equal(t, "", execCtx.TxCtx.XID)
-			assert.Equal(t, types.Local, execCtx.TxCtx.TransType)
+			assert.Equal(t, types.Local, execCtx.TxCtx.TransactionMode)
 		}
 		mi.before = before
 
@@ -203,7 +203,7 @@ func TestXAConn_BeginTx(t *testing.T) {
 
 		mi.before = func(_ context.Context, execCtx *types.ExecContext) {
 			assert.Equal(t, "", execCtx.TxCtx.XID)
-			assert.Equal(t, types.Local, execCtx.TxCtx.TransType)
+			assert.Equal(t, types.Local, execCtx.TxCtx.TransactionMode)
 		}
 
 		var comitCnt int32
@@ -229,7 +229,7 @@ func TestXAConn_BeginTx(t *testing.T) {
 
 		mi.before = func(_ context.Context, execCtx *types.ExecContext) {
 			assert.Equal(t, "", execCtx.TxCtx.XID)
-			assert.Equal(t, types.Local, execCtx.TxCtx.TransType)
+			assert.Equal(t, types.Local, execCtx.TxCtx.TransactionMode)
 		}
 
 		var comitCnt int32
@@ -257,7 +257,7 @@ func TestXAConn_BeginTx(t *testing.T) {
 
 		mi.before = func(_ context.Context, execCtx *types.ExecContext) {
 			assert.Equal(t, tm.GetXID(ctx), execCtx.TxCtx.XID)
-			assert.Equal(t, types.XAMode, execCtx.TxCtx.TransType)
+			assert.Equal(t, types.XAMode, execCtx.TxCtx.TransactionMode)
 		}
 
 		var comitCnt int32

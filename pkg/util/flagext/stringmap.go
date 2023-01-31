@@ -15,8 +15,25 @@
  * limitations under the License.
  */
 
-package client
+package flagext
 
-// InitRmClient init seata rm client
-func initRmClient() {
+import (
+	"encoding/json"
+)
+
+// StringMap is a map of string that implements flag.Value
+type StringMap map[string]string
+
+// String implements flag.Value
+func (v StringMap) String() string {
+	data, err := json.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
+}
+
+// Set implements flag.Value
+func (v *StringMap) Set(s string) error {
+	return json.Unmarshal([]byte(s), &v)
 }

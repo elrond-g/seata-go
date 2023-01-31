@@ -18,13 +18,75 @@
 package client
 
 import (
-	_ "github.com/seata/seata-go/pkg/integration"
-	_ "github.com/seata/seata-go/pkg/remoting/processor/client"
-	_ "github.com/seata/seata-go/pkg/rm/tcc"
+	"sync"
+
+	"github.com/seata/seata-go/pkg/datasource"
+
+	at "github.com/seata/seata-go/pkg/datasource/sql"
+	"github.com/seata/seata-go/pkg/integration"
+	"github.com/seata/seata-go/pkg/remoting/getty"
+	"github.com/seata/seata-go/pkg/remoting/processor/client"
+	"github.com/seata/seata-go/pkg/rm"
+	"github.com/seata/seata-go/pkg/rm/tcc"
+	"github.com/seata/seata-go/pkg/tm"
+	"github.com/seata/seata-go/pkg/util/log"
 )
 
-// Init init seata client
+// Init seata client client
 func Init() {
-	initRmClient()
-	initTmClient()
+	InitPath("")
+}
+
+// InitPath init client with config path
+func InitPath(configFilePath string) {
+	cfg := LoadPath(configFilePath)
+
+	initRmClient(cfg)
+	initTmClient(cfg)
+	initDatasource(cfg)
+}
+
+var (
+	onceInitTmClient   sync.Once
+	onceInitRmClient   sync.Once
+	onceInitDatasource sync.Once
+)
+
+// InitTmClient init client tm client
+func initTmClient(cfg *Config) {
+	onceInitTmClient.Do(func() {
+		tm.InitTm(cfg.ClientConfig.TmConfig)
+	})
+}
+
+// initRemoting init rpc client
+func initRemoting(cfg *Config) {
+	getty.InitRpcClient(&cfg.GettyConfig, &getty.SeataConfig{
+		ApplicationID:        cfg.ApplicationID,
+		TxServiceGroup:       cfg.TxServiceGroup,
+		ServiceVgroupMapping: cfg.ServiceConfig.VgroupMapping,
+		ServiceGrouplist:     cfg.ServiceConfig.Grouplist,
+	})
+}
+
+// InitRmClient init client rm client
+func initRmClient(cfg *Config) {
+	onceInitRmClient.Do(func() {
+		log.Init()
+		initRemoting(cfg)
+		rm.InitRm(rm.RmConfig{
+			ApplicationID:  cfg.ApplicationID,
+			TxServiceGroup: cfg.TxServiceGroup,
+		})
+		client.RegisterProcessor()
+		integration.Init()
+		tcc.InitTCC()
+		at.InitAT(cfg.ClientConfig.UndoConfig, cfg.AsyncWorkerConfig)
+	})
+}
+
+func initDatasource(cfg *Config) {
+	onceInitDatasource.Do(func() {
+		datasource.Init()
+	})
 }

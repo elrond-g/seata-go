@@ -22,9 +22,13 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/agiledragon/gomonkey"
-	getty "github.com/apache/dubbo-getty"
+	"github.com/agiledragon/gomonkey/v2"
+
+	"github.com/seata/seata-go/pkg/protocol/codec"
 	"github.com/seata/seata-go/pkg/protocol/message"
+	"github.com/seata/seata-go/pkg/util/log"
+
+	getty "github.com/apache/dubbo-getty"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,6 +90,8 @@ func TestGettyRemotingClient_SendAsyncRequest(t *testing.T) {
 
 // Test_syncCallback unit test for syncCallback function
 func Test_syncCallback(t *testing.T) {
+	codec.Init()
+	log.Init()
 	tests := []struct {
 		name    string
 		respMsg *message.MessageFuture

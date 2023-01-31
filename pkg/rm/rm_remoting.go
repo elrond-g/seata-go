@@ -18,6 +18,7 @@
 package rm
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -59,7 +60,11 @@ func (r *RMRemoting) BranchRegister(param BranchRegisterParam) (int64, error) {
 		log.Errorf("BranchRegister error: %v, res %v", err.Error(), resp)
 		return 0, err
 	}
-	return resp.(message.BranchRegisterResponse).BranchId, nil
+	branchResp := resp.(message.BranchRegisterResponse)
+	if branchResp.ResultCode == message.ResultCodeFailed {
+		return 0, fmt.Errorf("Response %s", branchResp.Msg)
+	}
+	return branchResp.BranchId, nil
 }
 
 // BranchReport Report status of transaction branch
@@ -94,10 +99,9 @@ func (r *RMRemoting) LockQuery(param LockQueryParam) (bool, error) {
 func (r *RMRemoting) RegisterResource(resource Resource) error {
 	req := message.RegisterRMRequest{
 		AbstractIdentifyRequest: message.AbstractIdentifyRequest{
-			// todo replace with config
 			Version:                 "1.5.2",
-			ApplicationId:           "tcc-sample",
-			TransactionServiceGroup: "my_test_tx_group",
+			ApplicationId:           rmConfig.ApplicationID,
+			TransactionServiceGroup: rmConfig.TxServiceGroup,
 		},
 		ResourceIds: resource.GetResourceId(),
 	}
@@ -126,7 +130,7 @@ func isRegisterSuccess(response interface{}) bool {
 func isReportSuccess(response interface{}) error {
 	if res, ok := response.(message.BranchReportResponse); ok {
 		if res.ResultCode == message.ResultCodeFailed {
-			return errors.New(res.Msg)
+			return fmt.Errorf(res.Msg)
 		}
 	} else {
 		return ErrBranchReportResponseFault
